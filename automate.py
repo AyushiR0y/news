@@ -515,7 +515,6 @@ def apply_custom_light_theme() -> None:
 			--kb-primary: {PRIMARY_COLOR};
 			--kb-bg: #f4f8fc;
 			--kb-surface: #ffffff;
-			--kb-surface-soft: #f8fbff;
 			--kb-border: #d6e3f3;
 			--kb-text: #0f172a;
 			--kb-muted: #334155;
@@ -530,37 +529,6 @@ def apply_custom_light_theme() -> None:
 			background: linear-gradient(180deg, #f7fbff 0%, var(--kb-bg) 55%, #eef5fd 100%) !important;
 		}}
 
-		.main .block-container {{
-			max-width: 1120px !important;
-			padding-top: 1.35rem !important;
-			padding-bottom: 2.2rem !important;
-			padding-left: 1.25rem !important;
-			padding-right: 1.25rem !important;
-		}}
-
-		h1 {{
-			font-size: 2rem !important;
-			line-height: 1.2 !important;
-			font-weight: 750 !important;
-			margin-bottom: 0.35rem !important;
-		}}
-
-		h2 {{
-			font-size: 1.35rem !important;
-			line-height: 1.25 !important;
-			font-weight: 700 !important;
-			margin-top: 1.1rem !important;
-			margin-bottom: 0.5rem !important;
-		}}
-
-		h3 {{
-			font-size: 1.08rem !important;
-			line-height: 1.3 !important;
-			font-weight: 650 !important;
-			margin-top: 0.85rem !important;
-			margin-bottom: 0.35rem !important;
-		}}
-
 		h1, h2, h3, .stMarkdown p strong {{
 			color: var(--kb-primary) !important;
 		}}
@@ -572,13 +540,6 @@ def apply_custom_light_theme() -> None:
 		div[role="radiogroup"] label,
 		input, textarea {{
 			color: var(--kb-text) !important;
-			font-size: 0.98rem !important;
-			line-height: 1.5 !important;
-		}}
-
-		.stCaption, [data-testid="stCaptionContainer"] p {{
-			font-size: 0.9rem !important;
-			line-height: 1.45 !important;
 		}}
 
 		a {{
@@ -599,16 +560,6 @@ def apply_custom_light_theme() -> None:
 			color: var(--kb-muted) !important;
 		}}
 
-		div[data-testid="stSelectbox"] > label,
-		div[data-testid="stTextInput"] > label,
-		div[data-testid="stTextArea"] > label,
-		div[data-testid="stRadio"] > label {{
-			font-weight: 600 !important;
-			font-size: 0.97rem !important;
-			margin-bottom: 0.35rem !important;
-			color: var(--kb-text) !important;
-		}}
-
 		div[data-testid="stTextInput"] input,
 		div[data-testid="stTextArea"] textarea,
 		div[data-testid="stSelectbox"] div[data-baseweb="select"],
@@ -618,27 +569,28 @@ def apply_custom_light_theme() -> None:
 			border-radius: 10px !important;
 		}}
 
-		div[data-testid="stSelectbox"] div[data-baseweb="select"] {{
-			min-height: 44px !important;
-			background: var(--kb-surface-soft) !important;
-			box-shadow: none !important;
+		/* BaseWeb select dropdown popup (portal) */
+		div[role="listbox"],
+		ul[role="listbox"],
+		div[data-baseweb="menu"],
+		div[data-baseweb="popover"] {{
+			background: var(--kb-surface) !important;
+			color: var(--kb-text) !important;
+			border: 1px solid var(--kb-border) !important;
 		}}
 
-		div[data-testid="stSelectbox"] div[data-baseweb="select"] > div {{
+		li[role="option"],
+		div[role="option"],
+		div[data-baseweb="menu"] div {{
+			background: var(--kb-surface) !important;
 			color: var(--kb-text) !important;
 		}}
 
-		div[data-baseweb="popover"] ul,
-		div[data-baseweb="menu"] {{
-			background: #f8fbff !important;
-			border: 1px solid var(--kb-border) !important;
-			border-radius: 10px !important;
-		}}
-
-		div[data-baseweb="popover"] li,
-		div[data-baseweb="menu"] li,
-		div[role="option"] {{
-			background: #f8fbff !important;
+		li[role="option"]:hover,
+		div[role="option"]:hover,
+		li[role="option"][aria-selected="true"],
+		div[role="option"][aria-selected="true"] {{
+			background: #eaf3ff !important;
 			color: var(--kb-text) !important;
 		}}
 
@@ -661,8 +613,6 @@ def apply_custom_light_theme() -> None:
 			border: 1px solid var(--kb-primary) !important;
 			border-radius: 10px !important;
 			font-weight: 600 !important;
-			padding: 0.5rem 0.8rem !important;
-			min-height: 42px !important;
 		}}
 
 		.stButton > button:hover,
@@ -680,48 +630,6 @@ def apply_custom_light_theme() -> None:
 			background: var(--kb-surface) !important;
 			border: 1px solid var(--kb-border) !important;
 			border-radius: 10px !important;
-		}}
-
-		div[data-testid="stVerticalBlock"] > div {{
-			margin-bottom: 0.25rem !important;
-		}}
-
-		@media (max-width: 768px) {{
-			.main .block-container {{
-				padding-top: 0.95rem !important;
-				padding-left: 0.75rem !important;
-				padding-right: 0.75rem !important;
-				padding-bottom: 1.5rem !important;
-			}}
-
-			h1 {{
-				font-size: 1.55rem !important;
-			}}
-
-			h2 {{
-				font-size: 1.14rem !important;
-			}}
-
-			h3 {{
-				font-size: 1rem !important;
-			}}
-
-			p, span, label, li,
-			.stMarkdown, .stMarkdown p, .stMarkdown li,
-			input, textarea {{
-				font-size: 0.95rem !important;
-				line-height: 1.45 !important;
-			}}
-
-			.stButton > button,
-			a[data-testid="stLinkButton"] {{
-				width: 100% !important;
-				min-height: 44px !important;
-			}}
-
-			div[data-testid="stTextArea"] textarea {{
-				min-height: 220px !important;
-			}}
 		}}
 		</style>
 		""",
