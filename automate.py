@@ -517,7 +517,7 @@ def apply_custom_light_theme() -> None:
 			--kb-surface: #ffffff;
 			--kb-border: #d6e3f3;
 			--kb-text: #0f172a;
-			--kb-muted: #4b5563;
+			--kb-muted: #334155;
 		}}
 
 		html, body, [class*="css"]  {{
@@ -530,6 +530,19 @@ def apply_custom_light_theme() -> None:
 		}}
 
 		h1, h2, h3, .stMarkdown p strong {{
+			color: var(--kb-primary) !important;
+		}}
+
+		p, span, label, li,
+		.stMarkdown, .stMarkdown p, .stMarkdown li,
+		div[data-testid="stWidgetLabel"],
+		div[data-baseweb="select"] *,
+		div[role="radiogroup"] label,
+		input, textarea {{
+			color: var(--kb-text) !important;
+		}}
+
+		a {{
 			color: var(--kb-primary) !important;
 		}}
 
@@ -554,6 +567,12 @@ def apply_custom_light_theme() -> None:
 			background: var(--kb-surface) !important;
 			border: 1px solid var(--kb-border) !important;
 			border-radius: 10px !important;
+		}}
+
+		div[data-testid="stTextArea"] textarea:disabled {{
+			color: var(--kb-text) !important;
+			-webkit-text-fill-color: var(--kb-text) !important;
+			opacity: 1 !important;
 		}}
 
 		div[data-testid="stTextInput"] input:focus,
@@ -643,34 +662,26 @@ def main() -> None:
 			st.error(f"Failed to fetch updates: {ex}")
 			updates = []
 
+	selected_result = None
 	st.subheader("🗞️ Latest Web Results (Past 7 Days)")
 	if not updates:
 		st.info("No updates found right now. Try refresh in a minute.")
 	else:
-		for item in updates[:8]:
-			title = item.get("title", "Untitled")
-			link = item.get("link", "")
-			meta = " • ".join(
-				[p for p in [item.get("source", ""), item.get("published", "")] if p]
-			)
-			if link:
-				st.markdown(f"- [{title}]({link})")
-			else:
-				st.markdown(f"- {title}")
-			if meta:
-				st.caption(meta)
-
-	selected_result = None
-	if updates:
-		st.subheader("🎯 Choose One Specific Result")
+		display_count = min(len(updates), 8)
 		result_idx = st.radio(
-			"Select one result for a comprehensive response",
-			options=list(range(len(updates))),
-			format_func=lambda idx: f"{updates[idx]['title']} ({updates[idx]['source']})",
+			"🎯 Select one result from latest updates",
+			options=list(range(display_count)),
+			format_func=lambda idx: (
+				f"{updates[idx]['title']}"
+				f"  |  {updates[idx].get('source', 'Unknown source')}"
+				f"  |  {updates[idx].get('published', 'Unknown date')}"
+			),
 		)
 		selected_result = updates[result_idx]
 		if selected_result.get("link"):
 			st.markdown(f"Selected link: [Open source]({selected_result['link']})")
+		if selected_result.get("summary"):
+			st.caption(selected_result.get("summary", ""))
 
 	generate = st.button("⚡ Generate Comprehensive Weekly Brief")
 	if generate:
