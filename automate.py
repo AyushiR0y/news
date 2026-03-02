@@ -482,14 +482,25 @@ def clean_phone_number(raw: str) -> str:
 
 def build_whatsapp_url(phone: str, message: str) -> Dict[str, str]:
 	clean_phone = clean_phone_number(phone)
-	base_url = f"https://wa.me/{clean_phone}" if clean_phone else "https://wa.me/"
+	query_prefix = f"phone={clean_phone}&" if clean_phone else ""
+	base_web_url = f"https://web.whatsapp.com/send?{query_prefix}"
+	base_app_url = f"whatsapp://send?{query_prefix}"
 	encoded_message = urllib.parse.quote(message)
-	prefill_url = f"{base_url}?text={encoded_message}"
+	prefill_web_url = f"{base_web_url}text={encoded_message}"
+	prefill_app_url = f"{base_app_url}text={encoded_message}"
 
-	if len(prefill_url) <= WHATSAPP_PREFILL_MAX_URL_LENGTH:
-		return {"url": prefill_url, "mode": "prefill"}
+	if len(prefill_web_url) <= WHATSAPP_PREFILL_MAX_URL_LENGTH:
+		return {
+			"web_url": prefill_web_url,
+			"app_url": prefill_app_url,
+			"mode": "prefill",
+		}
 
-	return {"url": base_url, "mode": "chat_only"}
+	return {
+		"web_url": base_web_url,
+		"app_url": base_app_url,
+		"mode": "chat_only",
+	}
 
 
 def get_missing_azure_vars() -> List[str]:
@@ -670,9 +681,11 @@ def main() -> None:
 				st.caption(
 					"Message is too long for direct WhatsApp prefill URL. Open chat and paste from copied text."
 				)
-				st.link_button(f"Open Chat {idx} in WhatsApp", wa_section["url"])
+				st.link_button(f"Open Chat {idx} in WhatsApp Web", wa_section["web_url"])
+				st.markdown(f"[Open Chat {idx} in WhatsApp App]({wa_section['app_url']})")
 			else:
-				st.link_button(f"Open Message {idx} in WhatsApp", wa_section["url"])
+				st.link_button(f"Open Message {idx} in WhatsApp Web", wa_section["web_url"])
+				st.markdown(f"[Open Message {idx} in WhatsApp App]({wa_section['app_url']})")
 
 		st.session_state["wa_phone"] = st.text_input(
 			"WhatsApp Number (optional, with country code, e.g., 91XXXXXXXXXX)",
@@ -691,9 +704,11 @@ def main() -> None:
 			st.caption(
 				"Combined text is too long for direct WhatsApp prefill URL. Open chat and paste from copied text."
 			)
-			st.link_button("Open Chat in WhatsApp", combined_wa["url"])
+			st.link_button("Open Chat in WhatsApp Web", combined_wa["web_url"])
+			st.markdown(f"[Open Chat in WhatsApp App]({combined_wa['app_url']})")
 		else:
-			st.link_button("Open Combined in WhatsApp", combined_wa["url"])
+			st.link_button("Open Combined in WhatsApp Web", combined_wa["web_url"])
+			st.markdown(f"[Open Combined in WhatsApp App]({combined_wa['app_url']})")
 
 
 if __name__ == "__main__":
