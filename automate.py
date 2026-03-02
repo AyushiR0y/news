@@ -32,6 +32,8 @@ AZURE_REQUIRED_VARS = [
 	"AZURE_OPENAI_DEPLOYMENT",
 ]
 
+WHATSAPP_PREFILL_MAX_URL_LENGTH = 1800
+
 AZURE_ENV_ALIASES = {
 	"AZURE_OPENAI_DEPLOYMENT": ["AZURE_OPENAI_DEPLOYMENT", "AZURE_OPENAI_DEPLOYMENT_NAME"],
 }
@@ -478,6 +480,18 @@ def clean_phone_number(raw: str) -> str:
 	return re.sub(r"\D", "", raw or "")
 
 
+def build_whatsapp_url(phone: str, message: str) -> Dict[str, str]:
+	clean_phone = clean_phone_number(phone)
+	base_url = f"https://wa.me/{clean_phone}" if clean_phone else "https://wa.me/"
+	encoded_message = urllib.parse.quote(message)
+	prefill_url = f"{base_url}?text={encoded_message}"
+
+	if len(prefill_url) <= WHATSAPP_PREFILL_MAX_URL_LENGTH:
+		return {"url": prefill_url, "mode": "prefill"}
+
+	return {"url": base_url, "mode": "chat_only"}
+
+
 def get_missing_azure_vars() -> List[str]:
 	missing = []
 	for var_name in AZURE_REQUIRED_VARS:
@@ -651,13 +665,14 @@ def main() -> None:
 			)
 			render_copy_button(message, key=f"{idx}_{title}")
 
-			encoded_section = urllib.parse.quote(message)
-			wa_url_section = (
-				f"https://wa.me/{clean_phone_number(st.session_state.get('wa_phone', ''))}?text={encoded_section}"
-				if clean_phone_number(st.session_state.get("wa_phone", ""))
-				else f"https://wa.me/?text={encoded_section}"
-			)
-			st.link_button(f"Open Message {idx} in WhatsApp", wa_url_section)
+			wa_section = build_whatsapp_url(st.session_state.get("wa_phone", ""), message)
+			if wa_section["mode"] == "chat_only":
+				st.caption(
+					"Message is too long for direct WhatsApp prefill URL. Open chat and paste from copied text."
+				)
+				st.link_button(f"Open Chat {idx} in WhatsApp", wa_section["url"])
+			else:
+				st.link_button(f"Open Message {idx} in WhatsApp", wa_section["url"])
 
 		st.session_state["wa_phone"] = st.text_input(
 			"WhatsApp Number (optional, with country code, e.g., 91XXXXXXXXXX)",
@@ -671,13 +686,14 @@ def main() -> None:
 		st.subheader("Combined Message (Optional)")
 		st.text_area("Combined Preview", value=combined_messages, height=260)
 		render_copy_button(combined_messages, key="combined")
-		combined_encoded = urllib.parse.quote(combined_messages)
-		combined_wa = (
-			f"https://wa.me/{phone}?text={combined_encoded}"
-			if phone
-			else f"https://wa.me/?text={combined_encoded}"
-		)
-		st.link_button("Open Combined in WhatsApp", combined_wa)
+		combined_wa = build_whatsapp_url(phone, combined_messages)
+		if combined_wa["mode"] == "chat_only":
+			st.caption(
+				"Combined text is too long for direct WhatsApp prefill URL. Open chat and paste from copied text."
+			)
+			st.link_button("Open Chat in WhatsApp", combined_wa["url"])
+		else:
+			st.link_button("Open Combined in WhatsApp", combined_wa["url"])
 
 
 if __name__ == "__main__":
