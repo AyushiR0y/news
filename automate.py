@@ -445,7 +445,7 @@ def build_section_messages(
 		if image_url:
 			text = f"{image_url}\n\n{text}"
 
-		messages.append({"title": display_title, "text": text})
+		messages.append({"title": display_title, "text": text, "image_url": image_url})
 
 	links_block = ["*Links:*"]
 	if selected_update.get("link"):
@@ -453,7 +453,7 @@ def build_section_messages(
 	if selected_update.get("image"):
 		links_block.append(selected_update["image"])
 	links_block.append(f"Generated on: {datetime.now().strftime('%d %b %Y, %I:%M %p')}")
-	messages.append({"title": "Links", "text": "\n\n".join(links_block)})
+	messages.append({"title": "Links", "text": "\n\n".join(links_block), "image_url": ""})
 
 	return messages
 
@@ -468,7 +468,7 @@ def render_copy_button(text_to_copy: str, key: str) -> None:
 			onclick='navigator.clipboard.writeText({payload}).then(() => {{
 			  document.getElementById("{status_id}").innerText = "Copied ✅";
 			}})'
-			style="padding:8px 14px;border-radius:8px;border:1px solid #888;cursor:pointer;"
+			style="padding:8px 14px;border-radius:8px;border:1px solid #7fb5e5;background:#eaf3ff;color:#0f172a;font-weight:600;cursor:pointer;"
 		  >Copy WhatsApp Text</button>
 		  <span id="{status_id}" style="margin-left:10px;color:green;font-weight:600;"></span>
 		</div>
@@ -624,17 +624,24 @@ def apply_custom_light_theme() -> None:
 
 		.stButton > button,
 		a[data-testid="stLinkButton"] {{
-			background: var(--kb-primary) !important;
-			color: #ffffff !important;
-			border: 1px solid var(--kb-primary) !important;
+			background: #eaf3ff !important;
+			color: var(--kb-text) !important;
+			border: 1px solid #7fb5e5 !important;
 			border-radius: 10px !important;
 			font-weight: 600 !important;
 		}}
 
+		.stButton > button *,
+		a[data-testid="stLinkButton"],
+		a[data-testid="stLinkButton"] * {{
+			color: var(--kb-text) !important;
+			-webkit-text-fill-color: var(--kb-text) !important;
+		}}
+
 		.stButton > button:hover,
 		a[data-testid="stLinkButton"]:hover {{
-			background: #004b89 !important;
-			border-color: #004b89 !important;
+			background: #dbeeff !important;
+			border-color: #5d9cd4 !important;
 		}}
 
 		[data-testid="stAlert"] {{
@@ -813,7 +820,10 @@ def main() -> None:
 		for idx, section_message in enumerate(section_messages, start=1):
 			title = section_message["title"]
 			message = section_message["text"]
+			image_url = (section_message.get("image_url") or "").strip()
 			st.markdown(f"### Message {idx}: {title}")
+			if image_url:
+				st.image(image_url, caption="Embedded image preview", use_container_width=True)
 			st.text_area(
 				f"Preview Box {idx} (Locked)",
 				value=message,
