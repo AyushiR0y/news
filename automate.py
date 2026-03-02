@@ -33,6 +33,7 @@ AZURE_REQUIRED_VARS = [
 ]
 
 WHATSAPP_WEB_PREFILL_MAX_URL_LENGTH = 1800
+PRIMARY_COLOR = "#005eac"
 
 AZURE_ENV_ALIASES = {
 	"AZURE_OPENAI_DEPLOYMENT": ["AZURE_OPENAI_DEPLOYMENT", "AZURE_OPENAI_DEPLOYMENT_NAME"],
@@ -506,11 +507,98 @@ def get_missing_azure_vars() -> List[str]:
 	return missing
 
 
+def apply_custom_light_theme() -> None:
+	st.markdown(
+		f"""
+		<style>
+		:root {{
+			--kb-primary: {PRIMARY_COLOR};
+			--kb-bg: #f4f8fc;
+			--kb-surface: #ffffff;
+			--kb-border: #d6e3f3;
+			--kb-text: #0f172a;
+			--kb-muted: #4b5563;
+		}}
+
+		html, body, [class*="css"]  {{
+			background: var(--kb-bg) !important;
+			color: var(--kb-text) !important;
+		}}
+
+		.stApp {{
+			background: linear-gradient(180deg, #f7fbff 0%, var(--kb-bg) 55%, #eef5fd 100%) !important;
+		}}
+
+		h1, h2, h3, .stMarkdown p strong {{
+			color: var(--kb-primary) !important;
+		}}
+
+		[data-testid="stHeader"] {{
+			background: rgba(255,255,255,0.96) !important;
+			border-bottom: 1px solid var(--kb-border) !important;
+		}}
+
+		[data-testid="stSidebar"] {{
+			background: #f2f8ff !important;
+			border-right: 1px solid var(--kb-border) !important;
+		}}
+
+		[data-testid="stMetricValue"], .stCaption {{
+			color: var(--kb-muted) !important;
+		}}
+
+		div[data-testid="stTextInput"] input,
+		div[data-testid="stTextArea"] textarea,
+		div[data-testid="stSelectbox"] div[data-baseweb="select"],
+		div[role="radiogroup"] {{
+			background: var(--kb-surface) !important;
+			border: 1px solid var(--kb-border) !important;
+			border-radius: 10px !important;
+		}}
+
+		div[data-testid="stTextInput"] input:focus,
+		div[data-testid="stTextArea"] textarea:focus {{
+			border-color: var(--kb-primary) !important;
+			box-shadow: 0 0 0 1px var(--kb-primary) !important;
+		}}
+
+		.stButton > button,
+		a[data-testid="stLinkButton"] {{
+			background: var(--kb-primary) !important;
+			color: #ffffff !important;
+			border: 1px solid var(--kb-primary) !important;
+			border-radius: 10px !important;
+			font-weight: 600 !important;
+		}}
+
+		.stButton > button:hover,
+		a[data-testid="stLinkButton"]:hover {{
+			background: #004b89 !important;
+			border-color: #004b89 !important;
+		}}
+
+		[data-testid="stAlert"] {{
+			border-radius: 10px !important;
+			border: 1px solid var(--kb-border) !important;
+		}}
+
+		div[data-testid="stExpander"] > details {{
+			background: var(--kb-surface) !important;
+			border: 1px solid var(--kb-border) !important;
+			border-radius: 10px !important;
+		}}
+		</style>
+		""",
+		unsafe_allow_html=True,
+	)
+
+
 def main() -> None:
-	st.set_page_config(page_title="Weekly Tech Updates to WhatsApp", layout="wide")
-	st.title("📰 Weekly Tech + AI Update Generator")
+	st.set_page_config(page_title="KnowledgeByte Generator", page_icon="🧠", layout="wide")
+	apply_custom_light_theme()
+	st.title("🧠 KnowledgeByte Generator")
 	st.caption(
-		"Fetches latest web updates, generates a comprehensive GenAI digest, and formats it for WhatsApp."
+		"✨ Fetches latest web updates, generates a comprehensive AI brief, and formats it for WhatsApp sharing."
 	)
 
 	missing_azure_vars = get_missing_azure_vars()
@@ -539,11 +627,11 @@ def main() -> None:
 	col_a, col_b = st.columns([3, 1])
 	with col_a:
 		selected_topic = st.selectbox(
-			"Choose one topic (AI will generate details only for this topic)",
+			"📚 Choose a topic (AI generates details only for this topic)",
 			list(TOPIC_QUERIES.keys()),
 		)
 	with col_b:
-		refresh = st.button("Refresh Latest Updates")
+		refresh = st.button("🔄 Refresh Latest Updates")
 
 	if refresh:
 		fetch_topic_updates.clear()
@@ -555,7 +643,7 @@ def main() -> None:
 			st.error(f"Failed to fetch updates: {ex}")
 			updates = []
 
-	st.subheader("Latest Web Results (Past 7 Days)")
+	st.subheader("🗞️ Latest Web Results (Past 7 Days)")
 	if not updates:
 		st.info("No updates found right now. Try refresh in a minute.")
 	else:
@@ -574,7 +662,7 @@ def main() -> None:
 
 	selected_result = None
 	if updates:
-		st.subheader("Choose One Specific Result")
+		st.subheader("🎯 Choose One Specific Result")
 		result_idx = st.radio(
 			"Select one result for a comprehensive response",
 			options=list(range(len(updates))),
@@ -584,7 +672,7 @@ def main() -> None:
 		if selected_result.get("link"):
 			st.markdown(f"Selected link: [Open source]({selected_result['link']})")
 
-	generate = st.button("Generate Comprehensive Weekly Brief")
+	generate = st.button("⚡ Generate Comprehensive Weekly Brief")
 	if generate:
 		if not selected_result:
 			st.warning("Please select one specific result first.")
@@ -634,17 +722,17 @@ def main() -> None:
 
 		sections = parse_sectioned_digest(digest_text)
 
-		st.subheader("Comprehensive Response")
+		st.subheader("📘 Comprehensive Response")
 		st.write(digest_text)
 
-		st.subheader("Section-wise WhatsApp Messages")
+		st.subheader("💬 Section-wise WhatsApp Messages")
 		st.caption("Each section is a separate message. You can add an image link at the top of each section.")
 		st.session_state["wa_phone"] = st.text_input(
-			"WhatsApp Number (optional, with country code, e.g., 91XXXXXXXXXX)",
+			"📱 WhatsApp Number (optional, with country code, e.g., 91XXXXXXXXXX)",
 			value=st.session_state.get("wa_phone", ""),
 		)
 		send_via = st.radio(
-			"Send copied text via",
+			"🚀 Send copied text via",
 			options=["WhatsApp App", "WhatsApp Web", "Both"],
 			index=0,
 			horizontal=True,
@@ -699,7 +787,7 @@ def main() -> None:
 		combined_messages = "\n\n------------------\n\n".join(
 			[msg["text"] for msg in section_messages]
 		)
-		st.subheader("Combined Message (Optional)")
+		st.subheader("🧾 Combined Message (Optional)")
 		st.text_area("Combined Preview", value=combined_messages, height=260)
 		render_copy_button(combined_messages, key="combined")
 		combined_wa = build_whatsapp_url(phone, combined_messages)
