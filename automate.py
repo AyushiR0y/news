@@ -32,7 +32,7 @@ AZURE_REQUIRED_VARS = [
 	"AZURE_OPENAI_DEPLOYMENT",
 ]
 
-WHATSAPP_PREFILL_MAX_URL_LENGTH = 1800
+WHATSAPP_WEB_PREFILL_MAX_URL_LENGTH = 1800
 
 AZURE_ENV_ALIASES = {
 	"AZURE_OPENAI_DEPLOYMENT": ["AZURE_OPENAI_DEPLOYMENT", "AZURE_OPENAI_DEPLOYMENT_NAME"],
@@ -489,17 +489,12 @@ def build_whatsapp_url(phone: str, message: str) -> Dict[str, str]:
 	prefill_web_url = f"{base_web_url}text={encoded_message}"
 	prefill_app_url = f"{base_app_url}text={encoded_message}"
 
-	if len(prefill_web_url) <= WHATSAPP_PREFILL_MAX_URL_LENGTH:
-		return {
-			"web_url": prefill_web_url,
-			"app_url": prefill_app_url,
-			"mode": "prefill",
-		}
-
 	return {
-		"web_url": base_web_url,
-		"app_url": base_app_url,
-		"mode": "chat_only",
+		"web_prefill_url": prefill_web_url,
+		"web_chat_url": base_web_url,
+		"app_prefill_url": prefill_app_url,
+		"app_chat_url": base_app_url,
+		"web_prefill_ok": len(prefill_web_url) <= WHATSAPP_WEB_PREFILL_MAX_URL_LENGTH,
 	}
 
 
@@ -644,6 +639,18 @@ def main() -> None:
 
 		st.subheader("Section-wise WhatsApp Messages")
 		st.caption("Each section is a separate message. You can add an image link at the top of each section.")
+		st.session_state["wa_phone"] = st.text_input(
+			"WhatsApp Number (optional, with country code, e.g., 91XXXXXXXXXX)",
+			value=st.session_state.get("wa_phone", ""),
+		)
+		send_via = st.radio(
+			"Send copied text via",
+			options=["WhatsApp App", "WhatsApp Web", "Both"],
+			index=0,
+			horizontal=True,
+			key="wa_send_via",
+		)
+		phone = clean_phone_number(st.session_state["wa_phone"])
 
 		section_images = {}
 		default_image = selected_result.get("image", "")
@@ -677,21 +684,17 @@ def main() -> None:
 			render_copy_button(message, key=f"{idx}_{title}")
 
 			wa_section = build_whatsapp_url(st.session_state.get("wa_phone", ""), message)
-			if wa_section["mode"] == "chat_only":
-				st.caption(
-					"Message is too long for direct WhatsApp prefill URL. Open chat and paste from copied text."
-				)
-				st.link_button(f"Open Chat {idx} in WhatsApp Web", wa_section["web_url"])
-				st.markdown(f"[Open Chat {idx} in WhatsApp App]({wa_section['app_url']})")
-			else:
-				st.link_button(f"Open Message {idx} in WhatsApp Web", wa_section["web_url"])
-				st.markdown(f"[Open Message {idx} in WhatsApp App]({wa_section['app_url']})")
+			if send_via in ["WhatsApp App", "Both"]:
+				st.link_button(f"Open Message {idx} in WhatsApp App", wa_section["app_prefill_url"])
 
-		st.session_state["wa_phone"] = st.text_input(
-			"WhatsApp Number (optional, with country code, e.g., 91XXXXXXXXXX)",
-			value=st.session_state.get("wa_phone", ""),
-		)
-		phone = clean_phone_number(st.session_state["wa_phone"])
+			if send_via in ["WhatsApp Web", "Both"]:
+				if wa_section["web_prefill_ok"]:
+					st.link_button(f"Open Message {idx} in WhatsApp Web", wa_section["web_prefill_url"])
+				else:
+					st.caption(
+						"Message is too long for WhatsApp Web prefill URL. Open Web chat and paste copied text."
+					)
+					st.link_button(f"Open Chat {idx} in WhatsApp Web", wa_section["web_chat_url"])
 
 		combined_messages = "\n\n------------------\n\n".join(
 			[msg["text"] for msg in section_messages]
@@ -700,15 +703,18 @@ def main() -> None:
 		st.text_area("Combined Preview", value=combined_messages, height=260)
 		render_copy_button(combined_messages, key="combined")
 		combined_wa = build_whatsapp_url(phone, combined_messages)
-		if combined_wa["mode"] == "chat_only":
-			st.caption(
-				"Combined text is too long for direct WhatsApp prefill URL. Open chat and paste from copied text."
-			)
-			st.link_button("Open Chat in WhatsApp Web", combined_wa["web_url"])
-			st.markdown(f"[Open Chat in WhatsApp App]({combined_wa['app_url']})")
-		else:
-			st.link_button("Open Combined in WhatsApp Web", combined_wa["web_url"])
-			st.markdown(f"[Open Combined in WhatsApp App]({combined_wa['app_url']})")
+
+		if send_via in ["WhatsApp App", "Both"]:
+			st.link_button("Open Combined in WhatsApp App", combined_wa["app_prefill_url"])
+
+		if send_via in ["WhatsApp Web", "Both"]:
+			if combined_wa["web_prefill_ok"]:
+				st.link_button("Open Combined in WhatsApp Web", combined_wa["web_prefill_url"])
+			else:
+				st.caption(
+					"Combined text is too long for WhatsApp Web prefill URL. Open Web chat and paste copied text."
+				)
+				st.link_button("Open Chat in WhatsApp Web", combined_wa["web_chat_url"])
 
 
 if __name__ == "__main__":
