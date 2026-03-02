@@ -43,7 +43,7 @@ AZURE_ENV_ALIASES = {
 TOPIC_QUERIES = {
 	"Innovations": "latest technology innovations startups breakthroughs insurance",
 	"Artificial Intelligence": "artificial intelligence machine learning latest updates insurance",
-	"Generative AI": "generative ai llm multimodal ai latest updates insurance",
+	"Generative AI": "generative ai genai llm multimodal foundation models latest updates",
 }
 
 SECTION_ORDER = [
@@ -149,32 +149,38 @@ def fetch_article_context(link: str) -> Dict[str, str]:
 
 @st.cache_data(ttl=1800)
 def fetch_topic_updates(query: str, max_items: int = 10) -> List[Dict[str, str]]:
-	rss_query = f"{query} when:7d"
-	rss_url = (
-		"https://news.google.com/rss/search?"
-		f"q={urllib.parse.quote_plus(rss_query)}&hl=en-IN&gl=IN&ceid=IN:en"
-	)
-	response = requests.get(
-		rss_url,
-		timeout=20,
-		headers={"User-Agent": "Mozilla/5.0 (NewsDigestBot/1.0)"},
-	)
-	response.raise_for_status()
-	feed = feedparser.parse(response.content)
+	query_candidates = [f"{query} when:7d", f"{query} when:30d", query]
 
-	updates: List[Dict[str, str]] = []
-	for entry in feed.entries[:max_items]:
-		updates.append(
-			{
-				"title": strip_html(entry.get("title", "Untitled")),
-				"link": entry.get("link", ""),
-				"source": strip_html(entry.get("source", {}).get("title", "")),
-				"published": strip_html(entry.get("published", "")),
-				"summary": strip_html(entry.get("summary", "")),
-				"image": extract_image_link(entry),
-			}
+	for rss_query in query_candidates:
+		rss_url = (
+			"https://news.google.com/rss/search?"
+			f"q={urllib.parse.quote_plus(rss_query)}&hl=en-IN&gl=IN&ceid=IN:en"
 		)
-	return updates
+		response = requests.get(
+			rss_url,
+			timeout=20,
+			headers={"User-Agent": "Mozilla/5.0 (NewsDigestBot/1.0)"},
+		)
+		response.raise_for_status()
+		feed = feedparser.parse(response.content)
+
+		updates: List[Dict[str, str]] = []
+		for entry in feed.entries[:max_items]:
+			updates.append(
+				{
+					"title": strip_html(entry.get("title", "Untitled")),
+					"link": entry.get("link", ""),
+					"source": strip_html(entry.get("source", {}).get("title", "")),
+					"published": strip_html(entry.get("published", "")),
+					"summary": strip_html(entry.get("summary", "")),
+					"image": extract_image_link(entry),
+				}
+			)
+
+		if updates:
+			return updates
+
+	return []
 
 
 def build_context_for_llm(result_title: str, selected_update: Dict[str, str]) -> str:
