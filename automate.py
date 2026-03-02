@@ -569,6 +569,22 @@ def apply_custom_light_theme() -> None:
 			border-radius: 10px !important;
 		}}
 
+		/* Selectbox closed control (value shown before opening dropdown) */
+		div[data-testid="stSelectbox"] div[data-baseweb="select"] > div,
+		div[data-testid="stSelectbox"] div[data-baseweb="select"] > div > div,
+		div[data-testid="stSelectbox"] div[data-baseweb="select"] input,
+		div[data-testid="stSelectbox"] div[data-baseweb="select"] span {{
+			background: #ffffff !important;
+			color: #000000 !important;
+			-webkit-text-fill-color: #000000 !important;
+		}}
+
+		div[data-testid="stSelectbox"] div[data-baseweb="select"] input::placeholder,
+		div[data-testid="stSelectbox"] div[data-baseweb="select"] div[aria-hidden="true"] {{
+			color: #000000 !important;
+			-webkit-text-fill-color: #000000 !important;
+		}}
+
 		/* BaseWeb select dropdown popup (portal) */
 		div[role="listbox"],
 		ul[role="listbox"],
