@@ -5,7 +5,7 @@ import os
 import re
 import urllib.parse
 from datetime import datetime
-from typing import Dict, List
+from typing import Dict, List, Union
 
 import feedparser
 import requests
@@ -41,9 +41,24 @@ AZURE_ENV_ALIASES = {
 
 
 TOPIC_QUERIES = {
-	"Innovations": "latest technology innovations startups breakthroughs insurance",
-	"Artificial Intelligence": "artificial intelligence machine learning latest updates insurance",
-	"Generative AI": "generative ai genai llm multimodal foundation models latest updates",
+	"Innovations": [
+		"innovations life insurance latest news",
+		"innovations general insurance latest news",
+		"innovations fintech finance latest news",
+		"innovations banking industry latest news",
+	],
+	"Artificial Intelligence": [
+		"artificial intelligence life insurance latest news",
+		"artificial intelligence general insurance latest news",
+		"artificial intelligence fintech finance latest news",
+		"artificial intelligence banking industry latest news",
+	],
+	"Generative AI": [
+		"generative ai genai life insurance latest news",
+		"generative ai genai general insurance latest news",
+		"generative ai genai fintech finance latest news",
+		"generative ai genai banking industry latest news",
+	],
 }
 
 SECTION_ORDER = [
@@ -148,37 +163,40 @@ def fetch_article_context(link: str) -> Dict[str, str]:
 
 
 @st.cache_data(ttl=1800)
-def fetch_topic_updates(query: str, max_items: int = 10) -> List[Dict[str, str]]:
-	query_candidates = [f"{query} when:7d", f"{query} when:30d", query]
+def fetch_topic_updates(query: Union[str, List[str]], max_items: int = 10) -> List[Dict[str, str]]:
+	query_sequence = query if isinstance(query, list) else [query]
 
-	for rss_query in query_candidates:
-		rss_url = (
-			"https://news.google.com/rss/search?"
-			f"q={urllib.parse.quote_plus(rss_query)}&hl=en-IN&gl=IN&ceid=IN:en"
-		)
-		response = requests.get(
-			rss_url,
-			timeout=20,
-			headers={"User-Agent": "Mozilla/5.0 (NewsDigestBot/1.0)"},
-		)
-		response.raise_for_status()
-		feed = feedparser.parse(response.content)
+	for base_query in query_sequence:
+		query_candidates = [f"{base_query} when:7d", f"{base_query} when:30d", base_query]
 
-		updates: List[Dict[str, str]] = []
-		for entry in feed.entries[:max_items]:
-			updates.append(
-				{
-					"title": strip_html(entry.get("title", "Untitled")),
-					"link": entry.get("link", ""),
-					"source": strip_html(entry.get("source", {}).get("title", "")),
-					"published": strip_html(entry.get("published", "")),
-					"summary": strip_html(entry.get("summary", "")),
-					"image": extract_image_link(entry),
-				}
+		for rss_query in query_candidates:
+			rss_url = (
+				"https://news.google.com/rss/search?"
+				f"q={urllib.parse.quote_plus(rss_query)}&hl=en-IN&gl=IN&ceid=IN:en"
 			)
+			response = requests.get(
+				rss_url,
+				timeout=20,
+				headers={"User-Agent": "Mozilla/5.0 (NewsDigestBot/1.0)"},
+			)
+			response.raise_for_status()
+			feed = feedparser.parse(response.content)
 
-		if updates:
-			return updates
+			updates: List[Dict[str, str]] = []
+			for entry in feed.entries[:max_items]:
+				updates.append(
+					{
+						"title": strip_html(entry.get("title", "Untitled")),
+						"link": entry.get("link", ""),
+						"source": strip_html(entry.get("source", {}).get("title", "")),
+						"published": strip_html(entry.get("published", "")),
+						"summary": strip_html(entry.get("summary", "")),
+						"image": extract_image_link(entry),
+					}
+				)
+
+			if updates:
+				return updates
 
 	return []
 
@@ -513,6 +531,15 @@ def get_missing_azure_vars() -> List[str]:
 	return missing
 
 
+def format_update_option(update: Dict[str, str]) -> str:
+	title = (update.get("title") or "Untitled").strip()
+	if len(title) > 88:
+		title = f"{title[:85].rstrip()}…"
+	source = (update.get("source") or "Unknown source").strip()
+	published = (update.get("published") or "Unknown date").strip()
+	return f"{title}  |  {source}  |  {published}"
+
+
 def apply_custom_light_theme() -> None:
 	st.markdown(
 		f"""
@@ -524,6 +551,13 @@ def apply_custom_light_theme() -> None:
 			--kb-border: #d6e3f3;
 			--kb-text: #0f172a;
 			--kb-muted: #334155;
+			--kb-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
+		}}
+
+		.main .block-container {{
+			max-width: 980px;
+			padding-top: 1.15rem;
+			padding-bottom: 1.6rem;
 		}}
 
 		html, body, [class*="css"]  {{
@@ -572,7 +606,22 @@ def apply_custom_light_theme() -> None:
 		div[role="radiogroup"] {{
 			background: var(--kb-surface) !important;
 			border: 1px solid var(--kb-border) !important;
-			border-radius: 10px !important;
+			border-radius: 12px !important;
+			box-shadow: var(--kb-shadow);
+		}}
+
+		div[role="radiogroup"] {{
+			padding: 0.4rem 0.65rem;
+			gap: 0.35rem;
+		}}
+
+		h1 {{
+			font-size: 1.95rem !important;
+			margin-bottom: 0.15rem !important;
+		}}
+
+		h2, h3 {{
+			margin-top: 0.65rem !important;
 		}}
 
 		/* Selectbox closed control (value shown before opening dropdown) */
@@ -633,8 +682,9 @@ def apply_custom_light_theme() -> None:
 			background: #eaf3ff !important;
 			color: var(--kb-text) !important;
 			border: 1px solid #7fb5e5 !important;
-			border-radius: 10px !important;
+			border-radius: 12px !important;
 			font-weight: 600 !important;
+			min-height: 2.55rem;
 		}}
 
 		.stButton > button *,
@@ -658,7 +708,30 @@ def apply_custom_light_theme() -> None:
 		div[data-testid="stExpander"] > details {{
 			background: var(--kb-surface) !important;
 			border: 1px solid var(--kb-border) !important;
-			border-radius: 10px !important;
+			border-radius: 12px !important;
+			box-shadow: var(--kb-shadow);
+		}}
+
+		@media (max-width: 768px) {{
+			.main .block-container {{
+				padding-top: 0.7rem;
+				padding-left: 0.7rem;
+				padding-right: 0.7rem;
+				padding-bottom: 1rem;
+			}}
+
+			h1 {{
+				font-size: 1.55rem !important;
+			}}
+
+			.stButton > button,
+			a[data-testid="stLinkButton"] {{
+				width: 100% !important;
+			}}
+
+			div[data-testid="stTextArea"] textarea {{
+				font-size: 0.95rem !important;
+			}}
 		}}
 		</style>
 		""",
@@ -697,14 +770,11 @@ def main() -> None:
 	if "last_generation_error" not in st.session_state:
 		st.session_state["last_generation_error"] = ""
 
-	col_a, col_b = st.columns([3, 1])
-	with col_a:
-		selected_topic = st.selectbox(
-			"📚 Choose a topic (AI generates details only for this topic)",
-			list(TOPIC_QUERIES.keys()),
-		)
-	with col_b:
-		refresh = st.button("🔄 Refresh Latest Updates")
+	selected_topic = st.selectbox(
+		"📚 Choose a topic (AI generates details only for this topic)",
+		list(TOPIC_QUERIES.keys()),
+	)
+	refresh = st.button("🔄 Refresh Latest Updates", use_container_width=True)
 
 	if refresh:
 		fetch_topic_updates.clear()
@@ -722,14 +792,10 @@ def main() -> None:
 		st.info("No updates found right now. Try refresh in a minute.")
 	else:
 		display_count = min(len(updates), 8)
-		result_idx = st.radio(
+		result_idx = st.selectbox(
 			"🎯 Select one result from latest updates",
 			options=list(range(display_count)),
-			format_func=lambda idx: (
-				f"{updates[idx]['title']}"
-				f"  |  {updates[idx].get('source', 'Unknown source')}"
-				f"  |  {updates[idx].get('published', 'Unknown date')}"
-			),
+			format_func=lambda idx: format_update_option(updates[idx]),
 		)
 		selected_result = updates[result_idx]
 		if selected_result.get("link"):
@@ -737,7 +803,7 @@ def main() -> None:
 		if selected_result.get("summary"):
 			st.caption(selected_result.get("summary", ""))
 
-	generate = st.button("⚡ Generate Comprehensive Weekly Brief")
+	generate = st.button("⚡ Generate Comprehensive Weekly Brief", use_container_width=True)
 	if generate:
 		if not selected_result:
 			st.warning("Please select one specific result first.")
@@ -788,7 +854,8 @@ def main() -> None:
 		sections = parse_sectioned_digest(digest_text)
 
 		st.subheader("📘 Comprehensive Response")
-		st.write(digest_text)
+		with st.expander("View full generated response", expanded=False):
+			st.write(digest_text)
 
 		st.subheader("💬 Section-wise WhatsApp Messages")
 		st.caption("Each section is a separate message. You can add an image link at the top of each section.")
@@ -800,20 +867,21 @@ def main() -> None:
 			"🚀 Send copied text via",
 			options=["WhatsApp App", "WhatsApp Web", "Both"],
 			index=0,
-			horizontal=True,
+			horizontal=False,
 			key="wa_send_via",
 		)
 		phone = clean_phone_number(st.session_state["wa_phone"])
 
 		section_images = {}
 		default_image = selected_result.get("image", "")
-		for title in SECTION_ORDER:
-			current_value = st.session_state["section_images"].get(title, default_image)
-			section_images[title] = st.text_input(
-				f"Image URL for section: {SECTION_DISPLAY_TITLES.get(title, title).format(result_title=selected_result['title'])} (optional)",
-				value=current_value,
-				key=f"img_{title}",
-			)
+		with st.expander("🖼️ Section image links (optional)", expanded=False):
+			for title in SECTION_ORDER:
+				current_value = st.session_state["section_images"].get(title, default_image)
+				section_images[title] = st.text_input(
+					f"Image URL for section: {SECTION_DISPLAY_TITLES.get(title, title).format(result_title=selected_result['title'])}",
+					value=current_value,
+					key=f"img_{title}",
+				)
 
 		st.session_state["section_images"] = section_images
 		section_messages = build_section_messages(
@@ -827,30 +895,30 @@ def main() -> None:
 			title = section_message["title"]
 			message = section_message["text"]
 			image_url = (section_message.get("image_url") or "").strip()
-			st.markdown(f"### Message {idx}: {title}")
-			if image_url:
-				st.image(image_url, caption="Embedded image preview", use_container_width=True)
-			st.text_area(
-				f"Preview Box {idx} (Locked)",
-				value=message,
-				height=220,
-				key=f"preview_{idx}_{title}",
-				disabled=True,
-			)
-			render_copy_button(message, key=f"{idx}_{title}")
+			with st.expander(f"Message {idx}: {title}", expanded=(idx == 1)):
+				if image_url:
+					st.image(image_url, caption="Embedded image preview", use_container_width=True)
+				st.text_area(
+					f"Preview Box {idx} (Locked)",
+					value=message,
+					height=180,
+					key=f"preview_{idx}_{title}",
+					disabled=True,
+				)
+				render_copy_button(message, key=f"{idx}_{title}")
 
-			wa_section = build_whatsapp_url(st.session_state.get("wa_phone", ""), message)
-			if send_via in ["WhatsApp App", "Both"]:
-				st.link_button(f"Open Message {idx} in WhatsApp App", wa_section["app_prefill_url"])
+				wa_section = build_whatsapp_url(st.session_state.get("wa_phone", ""), message)
+				if send_via in ["WhatsApp App", "Both"]:
+					st.link_button(f"Open Message {idx} in WhatsApp App", wa_section["app_prefill_url"])
 
-			if send_via in ["WhatsApp Web", "Both"]:
-				if wa_section["web_prefill_ok"]:
-					st.link_button(f"Open Message {idx} in WhatsApp Web", wa_section["web_prefill_url"])
-				else:
-					st.caption(
-						"Message is too long for WhatsApp Web prefill URL. Open Web chat and paste copied text."
-					)
-					st.link_button(f"Open Chat {idx} in WhatsApp Web", wa_section["web_chat_url"])
+				if send_via in ["WhatsApp Web", "Both"]:
+					if wa_section["web_prefill_ok"]:
+						st.link_button(f"Open Message {idx} in WhatsApp Web", wa_section["web_prefill_url"])
+					else:
+						st.caption(
+							"Message is too long for WhatsApp Web prefill URL. Open Web chat and paste copied text."
+						)
+						st.link_button(f"Open Chat {idx} in WhatsApp Web", wa_section["web_chat_url"])
 
 		combined_messages = "\n\n------------------\n\n".join(
 			[msg["text"] for msg in section_messages]
